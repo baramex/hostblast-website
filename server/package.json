@@ -1,0 +1,25 @@
+{
+  "name": "hostblast-website",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/baramex/hostblast-website.git"
+  },
+  "author": "baramex",
+  "license": "SEE LICENCE IN LICENCE FILE",
+  "bugs": {
+    "url": "https://github.com/baramex/hostblast-website/issues"
+  },
+  "homepage": "https://github.com/baramex/hostblast-website#readme",
+  "dependencies": {
+    "express": "^4.18.1",
+    "random-web-token": "^1.6.0",
+    "validator": "^13.7.0"
+  }
+}

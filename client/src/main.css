@@ -1,0 +1,12 @@
+:root {
+    --theme-pink: #FFA3C0;
+}
+
+html {
+    color: rgb(22, 22, 24);
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+.bg-pink {
+    background-color: var(--theme-pink);
+}
