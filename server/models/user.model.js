@@ -6,11 +6,12 @@ const { AVATAR_COUNT } = require("../utils/constants");
 const { passwordRegex, nameRegex } = require("../utils/regex");
 
 const userSchema = new Schema({
-    name: { type: { firstname: { type: String, validate: nameRegex, required: true }, lastname: { type: String, validate: nameRegex, required: true }, _id: false }, required: true },
-    email: { type: String, validate: isEmail, unique: true, required: true },
+    name: { type: { firstname: { type: String, validate: nameRegex, trim: true, required: true }, lastname: { type: String, validate: nameRegex, trim: true, required: true }, _id: false }, required: true },
+    email: { type: String, validate: isEmail, unique: true, required: true, trim: true },
     avatar: { type: Number, default: 0, min: 0, max: AVATAR_COUNT },
-    password: { type: String, required: true, validate: passwordRegex },
-    permissions: { type: [{ type: String, uppercase: true, validate: permissionRegex }], default: [] },
+    password: { type: String, required: true, validate: passwordRegex, trim: true },
+    permissions: { type: [{ type: String, uppercase: true, validate: permissionRegex, trim: true }], default: [] },
+    status: { type: Number, default: 0 },
     date: { type: Date, default: Date.now }
 });
 
@@ -33,6 +34,15 @@ class User {
      */
     check(password) {
         return compare(password, this.doc.password);
+    }
+
+    /**
+     * 
+     * @param {String} permission 
+     */
+    hasPermission(permission) {
+        if (this.doc.permissions.includes("*")) return true;
+        return this.doc.permissions.includes(permission);
     }
 
     toJSON() {
@@ -58,7 +68,19 @@ class User {
      * @param {ObjectId} id 
      */
     static async getById(id) {
-        return new User(await UserModel.findById(id));
+        var user = await UserModel.findById(id);
+        if (!user) return false;
+        return new User(user);
+    }
+
+    /**
+     * 
+     * @param {String} email 
+     */
+    static async getByEmail(email) {
+        var user = await UserModel.findOne({ email });
+        if (!user) return false;
+        return new User(user);
     }
 }
 
