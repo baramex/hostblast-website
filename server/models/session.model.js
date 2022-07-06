@@ -102,6 +102,17 @@ class Session {
         return new Session(session);
     }
 
+    /**
+     * 
+     * @param {String} refresh 
+     * @returns 
+     */
+    static async getByRefresh(refresh) {
+        var session = await SessionModel.findOne({ refreshToken: refresh });
+        if (!session) return false;
+        return new Session(session);
+    }
+
     static update() {
         SessionModel.updateMany({ active: true, date: { $gt: new Date().getTime() - SESSION_EXPIRES_IN } }, { $set: { active: false } });
     }
