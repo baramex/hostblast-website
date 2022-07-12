@@ -170,9 +170,9 @@ router.put("/user/@me/cart", Auth.requiresAuthentification, async (req, res) => 
         for (const i in features) {
             var feature = features[i];
             var docF = doc.configuration.find(a => a.type == feature.type);
-            if ((feature.quantity.canModify && docF.quantity != feature.quantity.value) || docF.quantity > feature.quantity.max || docF.quantity < feature.quantity.min) throw new Error("InvalidProduce");
+            if ((!feature.quantity.canModify && docF.quantity != feature.quantity.value) || docF.quantity > feature.quantity.max || docF.quantity < feature.quantity.min) throw new Error("InvalidProduce");
             if (feature.frequency) {
-                if ((feature.frequency.canModify && docF.frequency != feature.frequency.value) || docF.frequency > feature.frequency.max || docF.frequency < feature.frequency.min) throw new Error("InvalidProduce");
+                if ((!feature.frequency.canModify && docF.frequency != feature.frequency.value) || docF.frequency > feature.frequency.max || docF.frequency < feature.frequency.min) throw new Error("InvalidProduce");
             }
         }
 

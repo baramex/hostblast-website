@@ -1,12 +1,13 @@
 const { Schema, model, default: mongoose } = require("mongoose");
 const { PRODUCE_STATUS } = require("../utils/constants");
+const { Feature } = require("./feature.model");
 const { ObjectId } = mongoose.Types;
 
 const produceSchema = new Schema({
     type: { type: String, required: true },
     name: { type: String, required: true },
     stock: { type: Number, default: -1 },
-    price: { type: Number, required: true, min: 0 },
+    price: { type: Number, min: 0 },
     discount: { type: Number, default: 0, min: 0, max: 100 },
     features: {
         type: [{
@@ -29,8 +30,36 @@ class Produce {
         this.doc = doc;
     }
 
-    calculatePrice(configuration) {
-        // TODO
+    async calculatePrice(configuration) {
+        var price = this.doc.price || 0;
+
+        for (const i of this.doc.features) {
+            var feature = this.doc.feature[i];
+
+            var config = configuration.find(a => a.type == feature.type);
+            var fconf = { type: feature.type };
+
+            if (!config) {
+                fconf.quantity = feature.quantity.value;
+                if (feature.frequency) fconf.frequency = feature.frequency.value;
+            }
+            else {
+                if ((feature.quantity.canModify && config.quantity != feature.quantity.value) && config.quantity <= feature.quantity.max && config.quantity >= feature.quantity.min) {
+                    fconf.quantity = config.quantity;
+                }
+
+                if (feature.frequency) {
+                    if ((feature.frequency.canModify && docF.frequency != feature.frequency.value) && docF.frequency <= feature.frequency.max && docF.frequency >= feature.frequency.min) {
+                        fconf.frequency = config.frequency;
+                    }
+                }
+            }
+
+            var featureObject = await Feature.getByType(feature.type);
+            price += featureObject.getPrice(fconf.quantity, fconf.frequency);
+        }
+
+        return price;
     }
 
     isAvailable() {

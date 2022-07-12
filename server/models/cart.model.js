@@ -1,4 +1,5 @@
 const { Schema, model, default: mongoose } = require("mongoose");
+const { Produce } = require("./produce.model");
 const { ObjectId } = mongoose.Types;
 
 const cartSchema = new Schema({
@@ -33,8 +34,8 @@ class Cart {
         return this;
     }
 
-    get totalPrice() {
-        // TODO
+    async totalPrice() {
+        return this.doc.produces.map(async a => await (await Produce.getById(a.id)).calculatePrice(a.configuration)).reduce((p, c) => p + c, 0);
     }
 
     async addProduce(produce) {
