@@ -157,24 +157,21 @@ router.get("/produces/:type", async (req, res) => {
 // update product
 // remove product
 // get cart
+router.get("/user/@me/cart", Auth.requiresAuthentification, async (req, res) => {
+    try {
+        var cart = await Cart.getByUserId(req.user._id);
+
+        res.json(cart?.doc || []);
+    } catch (error) {
+        res.status(error.status || 400).send(error.message);
+    }
+});
+
 // push to cart
 router.put("/user/@me/cart", Auth.requiresAuthentification, async (req, res) => {
     try {
         var doc = req.body;
         if (!doc || !ObjectId.isValid(doc.id) || !Array.isArray(doc.features)) throw new Error("InvalidRequest");
-
-        var produce = await Produce.getById(new ObjectId(doc.id));
-        if (!produce) throw new Error("ProduceNotFound");
-
-        var features = produce.features;
-        for (const i in features) {
-            var feature = features[i];
-            var docF = doc.configuration.find(a => a.type == feature.type);
-            if ((!feature.quantity.canModify && docF.quantity != feature.quantity.value) || docF.quantity > feature.quantity.max || docF.quantity < feature.quantity.min) throw new Error("InvalidProduce");
-            if (feature.frequency) {
-                if ((!feature.frequency.canModify && docF.frequency != feature.frequency.value) || docF.frequency > feature.frequency.max || docF.frequency < feature.frequency.min) throw new Error("InvalidProduce");
-            }
-        }
 
         var cart = await Cart.getByUserId(req.user.doc._id);
         if (!cart) cart = await Cart.create(req.user.doc._id, [doc]);
@@ -186,8 +183,37 @@ router.put("/user/@me/cart", Auth.requiresAuthentification, async (req, res) => 
     }
 });
 
-// edit cart
+// edit from cart
+router.put("/user/@me/cart/:id", Auth.requiresAuthentification, async (req, res) => {
+    try {
+        var doc = req.body;
+        if (!doc || !ObjectId.isValid(doc.id) || !Array.isArray(doc.features)) throw new Error("InvalidRequest");
+
+        var cart = await Cart.getByUserId(req.user.doc._id);
+        if (!cart) throw new Error("InvalidCart");
+
+        await cart.updateProduce(req.params.id, doc);
+
+        res.json(cart.doc);
+    } catch (error) {
+        res.status(error.status || 400).send(error.message);
+    }
+});
+
 // remove from cart
+router.delete("/user/@me/cart/:id", Auth.requiresAuthentification, async (req, res) => {
+    try {
+        var cart = await Cart.getByUserId(req.user._id);
+        var isFound = await cart.removeProduce(req.params.id);
+
+        if (!isFound) throw new Error("ProduceNotFound");
+
+        res.sendStatus(200);
+    } catch (error) {
+        res.status(error.status || 400).send(error.message);
+    }
+});
+
 // buy produces
 // get own produces
 // get own produce

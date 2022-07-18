@@ -13,8 +13,7 @@ const cartSchema = new Schema({
                 frequency: Number,
                 _id: false
             }],
-            quantity: { type: Number, default: 1, min: 1, max: 5 },
-            _id: false
+            quantity: { type: Number, default: 1, min: 1, max: 5 }
         }], default: []
     }],
     date: { type: Date, default: Date.now }
@@ -38,8 +37,40 @@ class Cart {
         return this.doc.produces.map(async a => await (await Produce.getById(a.id)).calculatePrice(a.configuration)).reduce((p, c) => p + c, 0);
     }
 
-    async addProduce(produce) {
-        return await this.addProduces([produce]);
+    /**
+     * 
+     * @param {ObjectId} id 
+     */
+    async removeProduce(id) {
+        var l = this.doc.produces.length;
+        this.doc.produces = this.doc.produces.filter(a => !a._id.equals(id));
+        await this.doc.save();
+        return l != this.doc.produces.length;
+    }
+
+    /**
+     * 
+     * @param {ObjectId} id 
+     */
+    getProduce(id) {
+        return this.doc.produces.find(a => a._id == id);
+    }
+
+    /**
+     * 
+     * @param {ObjectId} id 
+     * @param {*} doc 
+     */
+    async updateProduce(id, doc) {
+        var prod = this.getProduce(id);
+        if (!prod) throw new Error("ProduceNotFound");
+        if (!await Cart.validateProduce(doc)) throw new Error("InvalidProduce");
+        prod = doc;
+        return await this.doc.save();
+    }
+
+    addProduce(produce) {
+        return this.addProduces([produce]);
     }
 
     /**
@@ -47,6 +78,7 @@ class Cart {
      * @param {[]} produces 
      */
     async addProduces(produces) {
+        if (!await Cart.validateProduces(produces)) throw new Error("InvalidProduces");
         this.doc.produces.push(...produces);
         await this.doc.save();
         return this;
@@ -59,6 +91,7 @@ class Cart {
      * @returns 
      */
     static async create(userId, produces) {
+        if (!await Cart.validateProduces(produces)) throw new Error("InvalidProduces");
         var doc = new CartModel({ userId, produces });
         return new Cart(await doc.save());
     }
@@ -71,6 +104,27 @@ class Cart {
         var doc = await CartModel.findOne({ userId });
         if (!doc) return false;
         return new Cart(doc);
+    }
+
+    static async validateProduces(docs) {
+        return docs.every(a => await Cart.validateProduce(a));
+    }
+
+    static async validateProduce(doc) {
+        var produce = await Produce.getById(new ObjectId(doc.id));
+        if (!produce) return false;
+
+        var features = produce.features;
+        for (const i in features) {
+            var feature = features[i];
+            var docF = doc.configuration.find(a => a.type == feature.type);
+            if ((!feature.quantity.canModify && docF.quantity != feature.quantity.value) || docF.quantity > feature.quantity.max || docF.quantity < feature.quantity.min) return false;
+            if (feature.frequency) {
+                if ((!feature.frequency.canModify && docF.frequency != feature.frequency.value) || docF.frequency > feature.frequency.max || docF.frequency < feature.frequency.min) return false;
+            }
+        }
+
+        return true;
     }
 }
 
