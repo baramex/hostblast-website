@@ -3,7 +3,7 @@ const { Schema, model, default: mongoose } = require("mongoose");
 const { ObjectId } = mongoose.Types;
 const { default: isEmail } = require("validator/lib/isEmail");
 const { AVATAR_COUNT } = require("../utils/constants");
-const { passwordRegex, nameRegex } = require("../utils/regex");
+const { passwordRegex, nameRegex, permissionRegex } = require("../utils/regex");
 
 const userSchema = new Schema({
     name: { type: { firstname: { type: String, validate: nameRegex, trim: true, required: true }, lastname: { type: String, validate: nameRegex, trim: true, required: true }, _id: false }, required: true },
@@ -15,7 +15,7 @@ const userSchema = new Schema({
     date: { type: Date, default: Date.now }
 });
 
-userSchema.pre("save", function (next) {
+userSchema.pre("save", async function (next) {
     if (this.isModified("password")) this.password = await hash(this.password, 10);
     next();
 });
@@ -46,7 +46,7 @@ class User {
     }
 
     toJSON() {
-        return { name, email, avatar, date } = this.doc;
+        return { name: this.doc.name, email: this.doc.email, avatar: this.doc.avatar, date: this.doc.date };
     }
 
     /**
@@ -59,7 +59,7 @@ class User {
      * @param {String[]} [permissions]
      */
     static async create(firstname, lastname, email, password, avatar, permissions) {
-        var doc = new UserModel({ firstname, lastname, email, password, avatar, permissions });
+        var doc = new UserModel({ name: { firstname, lastname }, email, password, avatar, permissions });
         return new User(await doc.save());
     }
 

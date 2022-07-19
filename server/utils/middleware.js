@@ -1,36 +1,35 @@
 const { default: mongoose } = require("mongoose");
 const { Session } = require("../models/session.model");
 const { User } = require("../models/user.model");
-const { ObjectId } = mongoose.Types;
 
 class Auth {
-    static requiresAuthentification(req, res, next) {
+    static async requiresAuthentification(req, res, next) {
         try {
             var token = req.cookies?.token;
 
-            if (!token || !ObjectId.isValid(token)) throw new CustomError("Unauthorized", 401);
+            if (!token) throw new CustomError("Unauthorized", 401);
 
-            var session = await Session.get(new ObjectId(token), req.ip);
+            var session = await Session.get(token, req.ip);
             if (!session) throw new CustomError("Unauthorized", 401);
 
-            var profile = await User.getById(session.doc.userId);
-            if (!profile) throw new CustomError("Unauthorized", 401);
+            var user = await User.getById(session.doc.userId);
+            if (!user) throw new CustomError("Unauthorized", 401);
 
             req.session = session;
-            req.profile = profile;
+            req.user = user;
             next();
         } catch (error) {
             return res.status(error.satus || 400).send(error.message);
         }
     }
 
-    static isAuthenticated(req, res, next) {
+    static async isAuthenticated(req, res, next) {
         try {
             var token = req.cookies?.token;
 
-            if (!token || !ObjectId.isValid(token)) throw new Error();
+            if (!token) throw new Error();
 
-            var session = await Session.get(new ObjectId(token), req.ip);
+            var session = await Session.get(token, req.ip);
             if (!session) throw new Error();
 
             var profile = await User.getById(session.doc.userId);

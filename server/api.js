@@ -26,8 +26,8 @@ router.post("/user", Auth.isAuthenticated, async (req, res) => {
         var session = await Session.create(user.doc._id, req.ip);
 
         res.status(201)
-            .cookie("token", session.doc.token, { expires: new Date(SESSION_EXPIRES_IN + session.doc.date) })
-            .cookie("refresh", session.doc.refreshToken, { expires: new Date(REFRESH_SESSION_EXPIRES_IN + session.doc.date) })
+            .cookie("token", session.doc.token, { expires: new Date(SESSION_EXPIRES_IN * 1000 + session.doc.date.getTime()) })
+            .cookie("refresh", session.doc.refreshToken, { expires: new Date(REFRESH_SESSION_EXPIRES_IN * 1000 + session.doc.date.getTime()) })
             .json(user.toJSON());
     } catch (error) {
         res.status(error.status || 400).send(error.message);
@@ -83,21 +83,21 @@ router.post("/auth/login", Auth.isAuthenticated, async (req, res) => {
     try {
         if (req.authenticated) throw new Error("AlreadyAuthenticated");
 
-        var username = req.body?.username;
+        var email = req.body?.email;
         var password = req.body?.password;
 
-        var user = await User.getByEmail(username);
+        var user = await User.getByEmail(email);
         if (!user || !await user.check(password)) throw new CustomError("WrongCredentials", 401);
 
         var session = await Session.getByUserId(user.doc._id);
         if (!session) await Session.create(user.doc._id, req.ip);
         else {
-            await session.addIp(ip);
+            await session.addIp(req.ip);
             await session.enable();
         }
 
-        res.cookie("token", session.doc.token, { expires: new Date(SESSION_EXPIRES_IN + session.doc.date) })
-            .cookie("refresh", session.doc.refreshToken, { expires: new Date(REFRESH_SESSION_EXPIRES_IN + session.doc.date) })
+        res.cookie("token", session.doc.token, { expires: new Date(SESSION_EXPIRES_IN * 1000 + session.doc.date.getTime()) })
+            .cookie("refresh", session.doc.refreshToken, { expires: new Date(REFRESH_SESSION_EXPIRES_IN * 1000 + session.doc.date.getTime()) })
             .json(user.toJSON());
     } catch (error) {
         res.status(error.status || 400).send(error.message);
@@ -120,8 +120,8 @@ router.post("/auth/refresh", Auth.isAuthenticated, async (req, res) => {
 
         await session.enable();
 
-        res.cookie("token", session.doc.token, { expires: new Date(SESSION_EXPIRES_IN + session.doc.date) })
-            .cookie("refresh", session.doc.refreshToken, { expires: new Date(REFRESH_SESSION_EXPIRES_IN + session.doc.date) })
+        res.cookie("token", session.doc.token, { expires: new Date(SESSION_EXPIRES_IN * 1000 + session.doc.date.getTime()) })
+            .cookie("refresh", session.doc.refreshToken, { expires: new Date(REFRESH_SESSION_EXPIRES_IN * 1000 + session.doc.date.getTime()) })
             .json(user.toJSON());
     } catch (error) {
         res.status(error.status || 400).send(error.message);
@@ -131,7 +131,7 @@ router.post("/auth/refresh", Auth.isAuthenticated, async (req, res) => {
 // revoke session
 router.post("/auth/disconnect", Auth.requiresAuthentification, async (req, res) => {
     try {
-        await req.session.disable();
+        await req.session.disable(true);
 
         res.sendStatus(200);
     } catch (error) {
@@ -154,8 +154,9 @@ router.get("/produces/:type", async (req, res) => {
     }
 });
 
-// update product
-// remove product
+// create produce
+// update produce
+// remove produce
 // get cart
 router.get("/user/@me/cart", Auth.requiresAuthentification, async (req, res) => {
     try {
@@ -171,7 +172,7 @@ router.get("/user/@me/cart", Auth.requiresAuthentification, async (req, res) => 
 router.put("/user/@me/cart", Auth.requiresAuthentification, async (req, res) => {
     try {
         var doc = req.body;
-        if (!doc || !ObjectId.isValid(doc.id) || !Array.isArray(doc.features)) throw new Error("InvalidRequest");
+        if (!doc || !ObjectId.isValid(doc.id) || !Array.isArray(doc.configuration)) throw new Error("InvalidRequest");
 
         var cart = await Cart.getByUserId(req.user.doc._id);
         if (!cart) cart = await Cart.create(req.user.doc._id, [doc]);
@@ -187,7 +188,7 @@ router.put("/user/@me/cart", Auth.requiresAuthentification, async (req, res) => 
 router.put("/user/@me/cart/:id", Auth.requiresAuthentification, async (req, res) => {
     try {
         var doc = req.body;
-        if (!doc || !ObjectId.isValid(doc.id) || !Array.isArray(doc.features)) throw new Error("InvalidRequest");
+        if (!doc || !ObjectId.isValid(doc.id) || !Array.isArray(doc.configuration)) throw new Error("InvalidRequest");
 
         var cart = await Cart.getByUserId(req.user.doc._id);
         if (!cart) throw new Error("InvalidCart");

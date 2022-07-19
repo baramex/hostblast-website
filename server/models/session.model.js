@@ -56,15 +56,22 @@ class Session {
         return this;
     }
 
-    async disable() {
-        if (!this.doc.active) return this;
+    async disable(disableRefresh=false) {
+        if (!this.doc.active) {
+            this.doc.token = undefined;
+        }
         this.doc.active = false;
+        if(disableRefresh) this.doc.refreshToken = undefined;
         await this.doc.save({ validateBeforeSave: true });
         return this;
     }
 
     async enable() {
-        if (this.doc.active) return this;
+        if (this.doc.active) {
+            this.doc.token = token.generate("extra", 32);
+            this.doc.refreshToken = token.generate("extra", 32);
+            this.doc.date = new Date();
+        }
         this.doc.active = true;
         await this.doc.save({ validateBeforeSave: true });
         return this;

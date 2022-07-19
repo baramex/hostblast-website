@@ -107,7 +107,7 @@ class Cart {
     }
 
     static async validateProduces(docs) {
-        return docs.every(a => await Cart.validateProduce(a));
+        return docs.every(async a => await Cart.validateProduce(a));
     }
 
     static async validateProduce(doc) {

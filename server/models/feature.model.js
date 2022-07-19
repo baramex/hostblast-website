@@ -1,12 +1,11 @@
 const { Schema, model, default: mongoose } = require("mongoose");
 const { default: isURL } = require("validator/lib/isURL");
-const { ObjectId } = mongoose.Types;
 
 const featureSchema = new Schema({
     type: { type: String, required: true, unique: true },
     icon: { type: String, required: true, validator: isURL },
     units: { type: { quantity: { type: String, required: true }, frequency: String, _id: false }, required: true },
-    funcs: { type: { quantity: Function, frequency: Function, _id: false } }
+    funcs: { type: { quantity: String, frequency: String, _id: false } }
 });
 
 const FeatureModel = model("Feature", featureSchema, "features");

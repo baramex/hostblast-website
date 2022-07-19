@@ -13,8 +13,8 @@ const produceSchema = new Schema({
         type: [{
             type: { type: String, required: true, unique: true },
             model: String,
-            quantity: { type: { canModify: { type: Boolean, default: false }, value: { type: Number, required: true }, min: Number, max: Number }, required: true },
-            frequency: { type: { canModify: { type: Boolean, default: false }, value: { type: Number, required: true }, min: Number, max: Number } },
+            quantity: { type: { canModify: { type: Boolean, default: false }, value: { type: Number, required: true }, min: Number, max: Number, _id: false }, required: true },
+            frequency: { type: { canModify: { type: Boolean, default: false }, value: { type: Number, required: true }, min: Number, max: Number, _id: false } },
             _id: false
         }], required: true
     },
