@@ -4,7 +4,7 @@ const { ObjectId } = mongoose.Types;
 
 const cartSchema = new Schema({
     userId: { type: ObjectId, required: true },
-    produces: [{
+    produces: {
         type: [{
             id: { type: ObjectId, required: true },
             configuration: [{
@@ -15,7 +15,7 @@ const cartSchema = new Schema({
             }],
             quantity: { type: Number, default: 1, min: 1, max: 5 }
         }], default: []
-    }],
+    },
     date: { type: Date, default: Date.now }
 });
 

@@ -27,6 +27,9 @@ function App() {
 
       <button onClick={() => getProduces("vps")}>Get produces vps</button>
       <div id="produces-container"></div>
+
+      <button onClick={getCart}>Get cart</button>
+      <div id="cart"></div>
     </>
   );
 }
@@ -115,6 +118,21 @@ function buyItem(id) {
   }, err => {
     alert("Error: " + err.response?.data);
   });
+}
+
+function getCart() {
+  axios.get("http://localhost:3001/api/user/@me/cart", { withCredentials: true }).then(({ data }) => {
+    var parent = document.getElementById("cart");
+    parent.innerHTML = data.map(a =>
+      `<div class="p-4 bg-secondary" style="max-width: 250px">
+        <h1>${a.id}</h1>
+        <span>x${a.quantity}</span>
+        <button>remove</button>
+      </div>`
+    ).join("");
+  }, err => {
+    alert("Error: " + err.response?.data);
+  })
 }
 
 export default App;

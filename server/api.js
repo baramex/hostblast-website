@@ -160,9 +160,9 @@ router.get("/produces/:type", async (req, res) => {
 // get cart
 router.get("/user/@me/cart", Auth.requiresAuthentification, async (req, res) => {
     try {
-        var cart = await Cart.getByUserId(req.user._id);
+        var cart = await Cart.getByUserId(req.user.doc._id);
 
-        res.json(cart?.doc || []);
+        res.json(cart?.doc?.produces || []);
     } catch (error) {
         res.status(error.status || 400).send(error.message);
     }
