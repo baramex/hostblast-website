@@ -1,6 +1,7 @@
 const express = require("express");
 const { default: mongoose } = require("mongoose");
 const { Cart } = require("./models/cart.model");
+const { Feature } = require("./models/feature.model");
 const { Produce } = require("./models/produce.model");
 const { ObjectId } = mongoose.Types;
 const { Session } = require("./models/session.model");
@@ -155,8 +156,45 @@ router.get("/produces/:type", async (req, res) => {
 });
 
 // create produce
+router.post("/produce", Auth.requiresAuthentification, async (req, res) => {
+    try {
+        if (!req.user.hasPermission("CREATE_PRODUCE")) throw new CustomError("Forbidden", 403);
+
+        var { type, name, price, features } = req.body;
+        if (!type || !name || !Number(price) || !Array.isArray(features)) throw new Error("InvalidRequest");
+
+        for (const index in features) {
+            var { type, quantity } = features[index];
+            if (!type || !quantity) throw new Error("InvalidFeatures");
+            var f = await Feature.getByType(type);
+            if (!f) throw new Error("TypeDoesNotExist");
+        }
+
+        var produce = await Produce.create(type, name, price, features);
+
+        res.status(201).json(produce.doc);
+    } catch (error) {
+        res.status(error.status || 400).send(error.message);
+    }
+});
+
 // update produce
 // remove produce
+router.delete("/produces/:id", Auth.requiresAuthentification, async (req, res) => {
+    try {
+        if (!req.user.hasPermission("MANAGE_PRODUCES")) throw new CustomError("Forbidden", 403);
+
+        if (!ObjectId.isValid(req.params.id)) throw new Error("InvalidRequest");
+        var produce = await Produce.getById(new ObjectId(req.params.id));
+        produce.doc.
+        // delete
+
+        res.sendStatus(200);
+    } catch (error) {
+        res.status(error.status || 400).send(error.message);
+    }
+})
+
 // get cart
 router.get("/user/@me/cart", Auth.requiresAuthentification, async (req, res) => {
     try {

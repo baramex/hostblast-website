@@ -133,6 +133,11 @@ class Produce {
         if (!doc) return false;
         return new Produce(doc);
     }
+    
+    static async removeById(id) {
+        var doc = await ProduceModel.
+        // TODO (check si posible de faire avec doc)
+    }
 
     /**
      * 
