@@ -8,7 +8,11 @@ const { Session } = require("./models/session.model");
 const { User } = require("./models/user.model");
 const { SESSION_EXPIRES_IN, REFRESH_SESSION_EXPIRES_IN } = require("./utils/constants");
 const { Auth, CustomError } = require("./utils/middleware");
+const paypal = require("paypal-rest-sdk");
 const router = express.Router();
+
+const { PAYPAL_CLIENT_ID, PAYPAL_SECRET } = process.env;
+paypal.configure({ client_id: PAYPAL_CLIENT_ID, client_secret: PAYPAL_SECRET, mode: "sandbox" });
 
 router.use((req, res, next) => {
     req.ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
@@ -163,8 +167,8 @@ router.post("/produce", Auth.requiresAuthentification, async (req, res) => {
         var { type, name, price, features } = req.body;
         if (!type || !name || !Number(price) || !Array.isArray(features)) throw new Error("InvalidRequest");
 
-        for (const index in features) {
-            var { type, quantity } = features[index];
+        for (const feature of features) {
+            var { type, quantity } = feature;
             if (!type || !quantity) throw new Error("InvalidFeatures");
             var f = await Feature.getByType(type);
             if (!f) throw new Error("TypeDoesNotExist");
@@ -179,15 +183,39 @@ router.post("/produce", Auth.requiresAuthentification, async (req, res) => {
 });
 
 // update produce
+router.put("/produce/:id", Auth.requiresAuthentification, async (req, res) => {
+    try {
+        if (!req.user.hasPermission("MANAGE_PRODUCES")) throw new CustomError("Forbidden", 403);
+
+        if (!ObjectId.isValid(req.params.id)) throw new Error("InvalidRequest");
+
+        var features = req.body.features;
+        if (features) {
+            for (const feature of features) {
+                var { type, quantity } = feature;
+                if (!type || !quantity) throw new Error("InvalidFeatures");
+                var f = await Feature.getByType(type);
+                if (!f) throw new Error("TypeDoesNotExist");
+            }
+        }
+
+        var produce = await Produce.getById(req.params.id);
+        await produce.doc.overwrite(req.body).save({ validateBeforeSave: true });
+
+        res.status(201).json(produce.doc);
+    } catch (error) {
+        res.status(error.status || 400).send(error.message);
+    }
+});
+
 // remove produce
-router.delete("/produces/:id", Auth.requiresAuthentification, async (req, res) => {
+router.delete("/produce/:id", Auth.requiresAuthentification, async (req, res) => {
     try {
         if (!req.user.hasPermission("MANAGE_PRODUCES")) throw new CustomError("Forbidden", 403);
 
         if (!ObjectId.isValid(req.params.id)) throw new Error("InvalidRequest");
         var produce = await Produce.getById(new ObjectId(req.params.id));
-        produce.doc.
-        // delete
+        await produce.remove();
 
         res.sendStatus(200);
     } catch (error) {
@@ -242,7 +270,7 @@ router.put("/user/@me/cart/:id", Auth.requiresAuthentification, async (req, res)
 // remove from cart
 router.delete("/user/@me/cart/:id", Auth.requiresAuthentification, async (req, res) => {
     try {
-        var cart = await Cart.getByUserId(req.user._id);
+        var cart = await Cart.getByUserId(req.user.doc._id);
         var isFound = await cart.removeProduce(req.params.id);
 
         if (!isFound) throw new Error("ProduceNotFound");
@@ -254,6 +282,88 @@ router.delete("/user/@me/cart/:id", Auth.requiresAuthentification, async (req, r
 });
 
 // buy produces
+router.post("/payment/paypal", Auth.requiresAuthentification, async (req, res) => {
+    try {
+        var cart = await Cart.getByUserId(req.user.doc._id);
+        if (!cart || cart.doc.produces.length == 0) throw new Error("EmptyCart");
+
+        var produces = await cart.fetchProduces();
+
+        var paymentData = {
+            intent: "sale",
+            payer: {
+                payment_method: "paypal"
+            },
+            redirect_urls: {
+                return_url: req.headers.referer.split("").reverse().splice(1).reverse().join("") + req.originalUrl + "/success",
+                cancel_url: req.headers.referer.split("").reverse().splice(1).reverse().join("") + req.originalUrl + "/error"
+            },
+            transactions: [{
+                item_list: {
+                    items: produces.map(p => (
+                        {
+                            name: p.type + "-" + p.name,
+                            sku: p.id, price: p.price,
+                            currency: "EUR",
+                            quantity: p.quantity
+                        }
+                    ))
+                },
+                amount: {
+                    currency: "EUR",
+                    total: produces.map(p => p.price).reduce((p, c) => p + c, 0)
+                },
+                description: "Achat de " + produces.length + " items du panier."
+            }]
+        };
+
+        paypal.payment.create(paymentData, (err, payment) => {
+            if (err) return res.status(err.httpStatusCode).send(err.response.error_description || err.response.message);
+
+            res.json({ redirect_url: payment.links.find(a => a.rel == "approval_url").href });
+        });
+    } catch (error) {
+        res.status(error.status || 400).send(error.message);
+    }
+});
+
+router.get("/payment/success", Auth.requiresAuthentification, async (req, res) => {
+    try {
+        var cart = await Cart.getByUserId(req.user.doc._id);
+        if (!cart || cart.doc.produces.length == 0) throw new Error("EmptyCart");
+
+        var produces = await cart.fetchProduces();
+
+        const paymentInfo = {
+            paymentId: req.query.paymentId,
+            paerId: req.query.PayerID
+        };
+
+        const paymentData = {
+            payer_id: paymentInfo.paerId,
+            transactions: [{
+                amount: {
+                    currency: "EUR",
+                    total: produces.map(p => p.price).reduce((p, c) => p + c, 0)
+                }
+            }]
+        };
+
+        paypal.payment.execute(paymentInfo.paymentId, paymentData, async (err, payment) => {
+            try {
+                if (err) throw new CustomError(err.response.error_description || err.response.message, err.httpStatusCode);
+
+                await cart.removeAllProduces();
+                res.redirect("/");
+            } catch (error) {
+                res.status(error.status || 400).send(error.message);
+            }
+        });
+    } catch (error) {
+        res.status(error.status || 400).send(error.message);
+    }
+});
+
 // get own produces
 // get own produce
 // revoke own produce

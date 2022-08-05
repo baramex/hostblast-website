@@ -33,9 +33,7 @@ class Produce {
     async calculatePrice(configuration) {
         var price = this.doc.price || 0;
 
-        for (const i of this.doc.features) {
-            var feature = this.doc.feature[i];
-
+        for (const feature of this.doc.features) {
             var config = configuration.find(a => a.type == feature.type);
             var fconf = { type: feature.type };
 
@@ -64,6 +62,10 @@ class Produce {
 
     isAvailable() {
         return this.doc.stock > 0 || this.doc.stock == -1;
+    }
+
+    remove() {
+        return this.doc.remove();
     }
 
     /**
@@ -132,11 +134,6 @@ class Produce {
         var doc = await ProduceModel.findById(id).where("status", PRODUCE_STATUS.AVAILABLE);
         if (!doc) return false;
         return new Produce(doc);
-    }
-    
-    static async removeById(id) {
-        var doc = await ProduceModel.
-        // TODO (check si posible de faire avec doc)
     }
 
     /**

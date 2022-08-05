@@ -1,6 +1,5 @@
 import axios from "axios";
 import Cookies from 'js-cookie';
-import ReactDOM from 'react-dom/client';
 
 function App() {
   return (
@@ -30,6 +29,8 @@ function App() {
 
       <button onClick={getCart}>Get cart</button>
       <div id="cart"></div>
+
+      <button onClick={buyCart}>Purchase cart</button>
     </>
   );
 }
@@ -132,7 +133,15 @@ function getCart() {
     ).join("");
   }, err => {
     alert("Error: " + err.response?.data);
-  })
+  });
+}
+
+function buyCart() {
+  axios.post("http://localhost:3001/api/payment/paypal", {}, { withCredentials: true }).then(({ data }) => {
+    window.location.href = data.redirect_url
+  }, err => {
+    alert("Error: " + err.response?.data);
+  });
 }
 
 export default App;

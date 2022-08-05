@@ -27,6 +27,17 @@ class Cart {
         this.doc = doc;
     }
 
+    async fetchProduces() {
+        var produces = [];
+        for (const p of this.doc.produces) {
+            var id = p.id;
+            var fp = await Produce.getById(id);
+            var price = await fp.calculatePrice(p.configuration);
+            produces.push({ ...(fp.doc._doc), ...p._doc, price });
+        }
+        return produces;
+    }
+
     async removeAllProduces() {
         this.doc.produces = [];
         await this.doc.save();
@@ -115,8 +126,7 @@ class Cart {
         if (!produce) return false;
 
         var features = produce.features;
-        for (const i in features) {
-            var feature = features[i];
+        for (const feature of features) {
             var docF = doc.configuration.find(a => a.type == feature.type);
             if ((!feature.quantity.canModify && docF.quantity != feature.quantity.value) || docF.quantity > feature.quantity.max || docF.quantity < feature.quantity.min) return false;
             if (feature.frequency) {

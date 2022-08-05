@@ -10,7 +10,7 @@ app.use(bodyParser.json());
 const cookieParser = require("cookie-parser");
 app.use(cookieParser());
 
-var e = require("dotenv").config();
+require("dotenv").config();
 const { connect } = require("mongoose");
 connect(process.env.DB, { dbName: process.env.DB_NAME });
 
