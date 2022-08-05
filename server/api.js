@@ -295,8 +295,8 @@ router.post("/payment/paypal", Auth.requiresAuthentification, async (req, res) =
                 payment_method: "paypal"
             },
             redirect_urls: {
-                return_url: req.headers.referer.split("").reverse().splice(1).reverse().join("") + req.originalUrl + "/success",
-                cancel_url: req.headers.referer.split("").reverse().splice(1).reverse().join("") + req.originalUrl + "/error"
+                return_url: "http://localhost:3001/payment/paypal/success",
+                cancel_url: "http://localhost:3001/payment/paypal/error"
             },
             transactions: [{
                 item_list: {
@@ -327,7 +327,11 @@ router.post("/payment/paypal", Auth.requiresAuthentification, async (req, res) =
     }
 });
 
-router.get("/payment/success", Auth.requiresAuthentification, async (req, res) => {
+router.get("/payment/paypal/error", Auth.requiresAuthentification, async (req, res) => {
+    console.error(req.query);
+});
+
+router.get("/payment/paypal/success", Auth.requiresAuthentification, async (req, res) => {
     try {
         var cart = await Cart.getByUserId(req.user.doc._id);
         if (!cart || cart.doc.produces.length == 0) throw new Error("EmptyCart");
@@ -336,11 +340,11 @@ router.get("/payment/success", Auth.requiresAuthentification, async (req, res) =
 
         const paymentInfo = {
             paymentId: req.query.paymentId,
-            paerId: req.query.PayerID
+            payerId: req.query.PayerID
         };
 
         const paymentData = {
-            payer_id: paymentInfo.paerId,
+            payer_id: paymentInfo.payerId,
             transactions: [{
                 amount: {
                     currency: "EUR",
@@ -353,8 +357,11 @@ router.get("/payment/success", Auth.requiresAuthentification, async (req, res) =
             try {
                 if (err) throw new CustomError(err.response.error_description || err.response.message, err.httpStatusCode);
 
+                // create invoice
+                // deliver produces
+
                 await cart.removeAllProduces();
-                res.redirect("/");
+                res.redirect("http://localhost:3000/");
             } catch (error) {
                 res.status(error.status || 400).send(error.message);
             }

@@ -41,7 +41,7 @@ function login(e) {
   var email = e.target.querySelector("[name=email]").value;
   var password = e.target.querySelector("[name=password]").value;
 
-  axios.post("http://localhost:3001/api/auth/login", { email, password }, { withCredentials: true }).then(({ data }) => {
+  axios.post("/api/auth/login", { email, password }).then(({ data }) => {
     alert("Logged in ! ");
   }, err => {
     alert("Error: " + err.response?.data);
@@ -56,7 +56,7 @@ function signup(e) {
   var email = e.target.querySelector("[name=email]").value;
   var password = e.target.querySelector("[name=password]").value;
 
-  axios.post("http://localhost:3001/api/user", { firstname, lastname, email, password }, { withCredentials: true }).then(({ data }) => {
+  axios.post("/api/user", { firstname, lastname, email, password }).then(({ data }) => {
     alert("Signed up ! ");
   }, err => {
     alert("Error: " + err.response?.data);
@@ -66,7 +66,7 @@ function signup(e) {
 function getUser() {
   var token = Cookies.get("token");
   if (token) {
-    axios.get("http://localhost:3001/api/user/@me", { withCredentials: true }).then(({ data }) => {
+    axios.get("/api/user/@me").then(({ data }) => {
       alert(JSON.stringify(data));
     }, err => {
       alert("Error: " + err.response?.data);
@@ -77,7 +77,7 @@ function getUser() {
 function refreshSession() {
   var refreshToken = Cookies.get("refresh");
   if (refreshToken) {
-    axios.post("http://localhost:3001/api/auth/refresh", {}, { withCredentials: true }).then(({ data }) => {
+    axios.post("/api/auth/refresh").then(({ data }) => {
       alert("Refreshed !");
     }, err => {
       alert("Error: " + err.response?.data);
@@ -88,7 +88,7 @@ function refreshSession() {
 function disconnect() {
   var token = Cookies.get("token");
   if (token) {
-    axios.post("http://localhost:3001/api/auth/disconnect", {}, { withCredentials: true }).then(({ data }) => {
+    axios.post("/api/auth/disconnect").then(({ data }) => {
       alert("disconnected !");
       Cookies.remove("token");
       Cookies.remove("refresh");
@@ -99,7 +99,7 @@ function disconnect() {
 }
 
 function getProduces(type) {
-  axios.get("http://localhost:3001/api/produces/" + type).then(({ data }) => {
+  axios.get("/api/produces/" + type).then(({ data }) => {
     var parent = document.getElementById("produces-container");
     parent.innerHTML = data.map(a =>
       `<div class="p-4 bg-secondary" style="max-width: 250px">
@@ -114,7 +114,7 @@ function getProduces(type) {
 }
 
 function buyItem(id) {
-  axios.put("http://localhost:3001/api/user/@me/cart", { id, configuration: [] }, { withCredentials: true }).then(({ data }) => {
+  axios.put("/api/user/@me/cart", { id, configuration: [] }).then(({ data }) => {
     alert("added to cart !");
   }, err => {
     alert("Error: " + err.response?.data);
@@ -122,7 +122,7 @@ function buyItem(id) {
 }
 
 function getCart() {
-  axios.get("http://localhost:3001/api/user/@me/cart", { withCredentials: true }).then(({ data }) => {
+  axios.get("/api/user/@me/cart").then(({ data }) => {
     var parent = document.getElementById("cart");
     parent.innerHTML = data.map(a =>
       `<div class="p-4 bg-secondary" style="max-width: 250px">
@@ -137,7 +137,7 @@ function getCart() {
 }
 
 function buyCart() {
-  axios.post("http://localhost:3001/api/payment/paypal", {}, { withCredentials: true }).then(({ data }) => {
+  axios.post("/api/payment/paypal").then(({ data }) => {
     window.location.href = data.redirect_url
   }, err => {
     alert("Error: " + err.response?.data);

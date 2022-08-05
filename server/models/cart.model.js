@@ -125,9 +125,10 @@ class Cart {
         var produce = await Produce.getById(new ObjectId(doc.id));
         if (!produce) return false;
 
-        var features = produce.features;
+        var features = produce.doc.features;
         for (const feature of features) {
-            var docF = doc.configuration.find(a => a.type == feature.type);
+            let docF = doc.configuration.find(a => a.type == feature.type);
+            if (!docF) continue;
             if ((!feature.quantity.canModify && docF.quantity != feature.quantity.value) || docF.quantity > feature.quantity.max || docF.quantity < feature.quantity.min) return false;
             if (feature.frequency) {
                 if ((!feature.frequency.canModify && docF.frequency != feature.frequency.value) || docF.frequency > feature.frequency.max || docF.frequency < feature.frequency.min) return false;
